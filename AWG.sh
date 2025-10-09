@@ -58,8 +58,9 @@ rm -r $ddv_path
 mkdir -p "$ddv_path"
 
 cat << EOF > "$ddv_path/.env"
+DDV_PATH=${ddv_path}
+DDV_URL=${ddv_url}
 WG_HOST=${serverIp}
-LANGUAGE=en
 PORT=${awg_port}
 WG_DEVICE=eth0
 WG_PORT=${wg_port}
@@ -72,9 +73,10 @@ PASSWORD_HASH=${panelPasswordHash}
 WG_PERSISTENT_KEEPALIVE=21
 UI_TRAFFIC_STATS=true
 ENABLE_PROMETHEUS_METRICS=true
+LANGUAGE=en
 EOF
 
-cat << EOF > "$ddv_path/docker-compose.yml"
+cat << 'EOF' > "$ddv_path/docker-compose.yml"
 volumes:
   etc_wireguard:
 services:
@@ -84,7 +86,7 @@ services:
     image: ghcr.io/w0rng/amnezia-wg-easy
     container_name: amnezia-wg-easy
     volumes:
-      - ${ddv_path}:/etc/wireguard
+      - ${DDV_PATH}:/etc/wireguard
     ports:
       - "${WG_PORT}:${WG_PORT}/udp"
       - "${PORT}:${PORT}/tcp"
