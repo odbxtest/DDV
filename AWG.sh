@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -euo pipefail
-
 RED='\033[0;31m'
 GR='\033[0;32m'
 YE='\033[0;33m'
@@ -49,7 +47,6 @@ if [ -z "$panelPasswordHash" ]; then
 fi
 echo "Hash generated successfully (first 10 chars): ${panelPasswordHash:0:10}..."
 
-echo "Starting AmneziaWG-Easy container..."
 
 # ---------------------------
 docker stop $(docker ps -a -q) &> /dev/null
@@ -58,6 +55,8 @@ rm -r $ddv_path
 # ---------------------------
 
 mkdir -p "$ddv_path"
+
+echo "Starting AmneziaWG-Easy container..."
 
 cat << EOF > "$ddv_path/.env"
 DDV_PATH=${ddv_path}
@@ -71,7 +70,7 @@ WG_DEFAULT_DNS=1.1.1.1,8.8.8.8
 WG_ALLOWED_IPS=0.0.0.0/0, ::/0
 DICEBEAR_TYPE=bottts
 USE_GRAVATAR=true
-PASSWORD_HASH=${panelPasswordHash}
+PASSWORD_HASH='${panelPasswordHash}'
 WG_PERSISTENT_KEEPALIVE=21
 UI_TRAFFIC_STATS=true
 ENABLE_PROMETHEUS_METRICS=true
