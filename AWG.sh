@@ -52,6 +52,8 @@ echo "Hash generated successfully (first 10 chars): ${panelPasswordHash:0:10}...
 echo "Starting AmneziaWG-Easy container..."
 
 # ---------------------------
+docker stop $(docker ps -a -q)
+docker rm $(docker ps -a -q)
 rm -r $ddv_path
 # ---------------------------
 
