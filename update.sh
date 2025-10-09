@@ -53,23 +53,19 @@ if ! grep -q "disable_ipv6" /etc/sysctl.conf; then
   info "* IPV6 Disabled"
 fi
 
-getConfiguration=$(curl -s --connect-timeout 10 'https://raw.githubusercontent.com/odbxtest/VAL2/main/conc_info.json') || error "Failed to fetch configuration"
-conc_url=$(echo "$getConfiguration" | jq -r '.url')
-conc_port=$(echo "$getConfiguration" | jq -r '.conc_port')
+getConfiguration=$(curl -s --connect-timeout 10 'https://raw.githubusercontent.com/odbxtest/DDV/main/info.json') || error "Failed to fetch configuration"
+ddv_url=$(echo "$getConfiguration" | jq -r '.url')
 awg_port=$(echo "$getConfiguration" | jq -r '.awg_port')
 wg_port=$(echo "$getConfiguration" | jq -r '.wg_port')
 ssh_ports=$(echo "$getConfiguration" | jq -r '."ssh_ports"[]' 2>/dev/null)
-trafficCalculator=$(echo "$getConfiguration" | jq -c '.trafficCalculator')
-onlineCheck=$(echo "$getConfiguration" | jq -c '.onlineCheck')
-conc_path=$(echo "$getConfiguration" | jq -r '.path')
-conc_awg_path=$(echo "$getConfiguration" | jq -r '.awg_path')
+ddv_path=$(echo "$getConfiguration" | jq -r '.path')
 apt=$(echo "$getConfiguration" | jq -r '."apt"[]' 2>/dev/null)
 pip=$(echo "$getConfiguration" | jq -r '."pip"[]' 2>/dev/null)
 
-if [[ "$conc_awg_path" == *"/"* ]]; then
-    echo "OK - $conc_awg_path"
+if [[ "$ddv_path" == *"/"* ]]; then
+    echo "OK - $ddv_path"
 else
-    error "Error: Invalid or unsafe path '$conc_awg_path'."
+    error "Error: Invalid or unsafe path '$ddv_path'."
 fi
 
 
@@ -98,85 +94,81 @@ for port in $ssh_ports; do
 done
 sudo systemctl restart sshd || error "Failed to restart SSH service"
 
-sudo ufw allow $conc_port
 sudo ufw allow $awg_port
 sudo ufw allow $wg_port
-sudo ufw allow 7300
-sudo ufw allow 7555
 sudo ufw --force enable
 sudo ufw reload
 
 # ********************************* #
-for s in awgApp; do
-    systemctl stop "$s.service"
-    systemctl disable "$s.service"
-    rm -f "/etc/systemd/system/$s.service"
-done
+#for s in awgApp; do
+#    systemctl stop "$s.service"
+#    systemctl disable "$s.service"
+#    rm -f "/etc/systemd/system/$s.service"
+#done
 
-rm -r $conc_awg_path
+#rm -r $conc_awg_path
 # ********************************* #
 
-apt_wait
+#apt_wait
+#if [ -n "$(sudo lsof -t -i :"$awg_port")" ]; then
+#  sudo kill -9 $(sudo lsof -t -i :"$awg_port") && info "Killed process on port $awg_port"
+#else
+#  info "No process found on port $awg_port"
+#fi
 
-if [ -n "$(sudo lsof -t -i :"$awg_port")" ]; then
-  sudo kill -9 $(sudo lsof -t -i :"$awg_port") && info "Killed process on port $awg_port"
-else
-  info "No process found on port $awg_port"
-fi
-
-if [ ! -d "$conc_awg_path" ]; then
-  sudo mkdir -p "$conc_awg_path"
-  sudo chmod 755 "$conc_awg_path"
-  info "+ Created dir [$conc_awg_path]"
-fi
-
-cd $conc_awg_path
-if [ ! -f app.py ]; then
-  rm -rf "$conc_awg_path"/*
-  
-  wget "$conc_url/files/VAL2AWG.zip" || error "Failed to download VAL2AWG.zip"
-  unzip VAL2AWG.zip
-  find . -type f -name "*.py" -exec sed -i -e 's/\r$//' {} \;
-  sudo pip3 install -r $conc_awg_path/requirements.txt
-  
-  for file in "$conc_awg_path"/systemd/*; do
-    # Just for debug
-    service_name=$(basename "$file")
-    echo "Stopping and disabling: $service_name"
-    sudo systemctl stop "$service_name".service >> /dev/null 2>&1
-    sudo systemctl disable "$service_name".service >> /dev/null 2>&1
-    sudo rm "/etc/systemd/system/$service_name.service" >> /dev/null 2>&1
-    # ----------- #
-    if [ ! -f /etc/systemd/system/$(basename $file) ]; then
-      cp $file /etc/systemd/system/
-    fi
-    
-  done
-  
-  chmod +x $conc_awg_path/app.py
-  chmod +x $conc_awg_path/*.sh
-  
-  sudo systemctl daemon-reload
-fi
-
-
-services=("awgApp")
-for service in "${services[@]}"; do
-    echo "🔧 Managing service: $service"
-
-    sudo systemctl enable "$service"
-
-    if systemctl is-active --quiet "$service"; then
-        echo "↻ Restarting $service (already running)"
-        sudo systemctl restart "$service"
-    else
-        echo "▶️ Starting $service"
-        sudo systemctl start "$service"
-    fi
-done
-
-CRON_JOB="0 * * * * /usr/bin/systemctl restart awgApp >/dev/null 2>&1"
-(crontab -l 2>/dev/null | grep -v -F "$CRON_JOB"; echo "$CRON_JOB") | crontab -
+#if [ ! -d "$ddv_path" ]; then
+#  sudo mkdir -p "$ddv_path"
+#  sudo chmod 755 "$ddv_path"
+#  info "+ Created dir [$ddv_path]"
+#fi
+#
+#cd $ddv_path
+#if [ ! -f app.py ]; then
+#  rm -rf "$conc_awg_path"/*
+#
+#  wget "$conc_url/files/VAL2AWG.zip" || error "Failed to download VAL2AWG.zip"
+#  unzip VAL2AWG.zip
+#  find . -type f -name "*.py" -exec sed -i -e 's/\r$//' {} \;
+#  sudo pip3 install -r $conc_awg_path/requirements.txt
+#
+#  for file in "$conc_awg_path"/systemd/*; do
+#    # Just for debug
+#    service_name=$(basename "$file")
+#    echo "Stopping and disabling: $service_name"
+#    sudo systemctl stop "$service_name".service >> /dev/null 2>&1
+#    sudo systemctl disable "$service_name".service >> /dev/null 2>&1
+#    sudo rm "/etc/systemd/system/$service_name.service" >> /dev/null 2>&1
+#    # ----------- #
+#    if [ ! -f /etc/systemd/system/$(basename $file) ]; then
+#      cp $file /etc/systemd/system/
+#    fi
+#
+#  done
+#
+#  chmod +x $conc_awg_path/app.py
+#  chmod +x $conc_awg_path/*.sh
+#
+#  sudo systemctl daemon-reload
+#fi
+#
+#
+#services=("awgApp")
+#for service in "${services[@]}"; do
+#    echo "🔧 Managing service: $service"
+#
+#    sudo systemctl enable "$service"
+#
+#    if systemctl is-active --quiet "$service"; then
+#        echo "↻ Restarting $service (already running)"
+#        sudo systemctl restart "$service"
+#    else
+#        echo "▶️ Starting $service"
+#        sudo systemctl start "$service"
+#    fi
+#done
+#
+#CRON_JOB="0 * * * * /usr/bin/systemctl restart awgApp >/dev/null 2>&1"
+#(crontab -l 2>/dev/null | grep -v -F "$CRON_JOB"; echo "$CRON_JOB") | crontab -
 
 hostname -I
 echo ""
