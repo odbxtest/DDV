@@ -78,7 +78,7 @@ ENABLE_PROMETHEUS_METRICS=true
 LANGUAGE=en
 EOF
 
-cat "$ddv_path/.env"
+cat $ddv_path/.env
 read -sp "Continue? "
 
 cat << 'EOF' > "$ddv_path/docker-compose.yml"
