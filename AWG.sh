@@ -51,38 +51,52 @@ echo "Hash generated successfully (first 10 chars): ${panelPasswordHash:0:10}...
 
 echo "Starting AmneziaWG-Easy container..."
 
+# ---------------------------
+rm -r $ddv_path
+# ---------------------------
+
 mkdir -p "$ddv_path"
 
-# Create the docker-compose.yml file in $ddv_path
+cat << EOF > "$ddv_path/.env"
+WG_HOST=${serverIp}
+LANGUAGE=en
+PORT=${awg_port}
+WG_DEVICE=eth0
+WG_PORT=${wg_port}
+WG_DEFAULT_ADDRESS=10.13.0.1
+WG_DEFAULT_DNS=1.1.1.1,8.8.8.8
+WG_ALLOWED_IPS=0.0.0.0/0, ::/0
+DICEBEAR_TYPE=bottts
+USE_GRAVATAR=true
+PASSWORD_HASH=${panelPasswordHash}
+WG_PERSISTENT_KEEPALIVE=21
+UI_TRAFFIC_STATS=true
+ENABLE_PROMETHEUS_METRICS=true
+EOF
+
 cat << EOF > "$ddv_path/docker-compose.yml"
+volumes:
+  etc_wireguard:
 services:
   amnezia-wg-easy:
+    env_file:
+      - .env
     image: ghcr.io/w0rng/amnezia-wg-easy
     container_name: amnezia-wg-easy
-    environment:
-      - LANG=en
-      - WG_HOST=${ddv_url}
-      - PORT=${awg_port}
-      - PASSWORD_HASH=${panelPasswordHash}
-      - WG_PERSISTENT_KEEPALIVE=21
-      - WG_DEFAULT_DNS=1.1.1.1,8.8.8.8
-      - UI_TRAFFIC_STATS=true
-      - ENABLE_PROMETHEUS_METRICS=true
-      - WG_PORT=${wg_port}
     volumes:
       - ${ddv_path}:/etc/wireguard
     ports:
-      - "${wg_port}:${wg_port}/udp"
-      - "${awg_port}:${awg_port}/tcp"
+      - "${WG_PORT}:${WG_PORT}/udp"
+      - "${PORT}:${PORT}/tcp"
+    restart: unless-stopped
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
     sysctls:
-      - net.ipv4.conf.all.src_valid_mark=1
       - net.ipv4.ip_forward=1
+      - net.ipv4.conf.all.src_valid_mark=1
     devices:
-      - /dev/net/tun:/dev/net/tun
-    restart: unless-stopped
+    - /dev/net/tun:/dev/net/tun
 EOF
 
 cd "$ddv_path"
