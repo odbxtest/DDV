@@ -61,19 +61,19 @@ services:
     container_name: amnezia-wg-easy
     environment:
       - LANG=en
-      - WG_HOST="$ddv_url"
-      - PORT="$awg_port"
-      - PASSWORD_HASH="$panelPasswordHash"
+      - WG_HOST=${ddv_url}
+      - PORT=${awg_port}
+      - PASSWORD_HASH=${panelPasswordHash}
       - WG_PERSISTENT_KEEPALIVE=21
       - WG_DEFAULT_DNS=1.1.1.1,8.8.8.8
       - UI_TRAFFIC_STATS=true
       - ENABLE_PROMETHEUS_METRICS=true
-      - WG_PORT="$wg_port"
+      - WG_PORT=${wg_port}
     volumes:
-      - "$ddv_path":/etc/wireguard
+      - ${ddv_path}:/etc/wireguard
     ports:
-      - "$wg_port:$wg_port/udp"
-      - "$awg_port:$awg_port/tcp"
+      - "${wg_port}:${wg_port}/udp"
+      - "${awg_port}:${awg_port}/tcp"
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
