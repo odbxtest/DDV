@@ -1,63 +1,63 @@
 #!/bin/bash
 
-set -e
+set -euo pipefail
 
-echo "Updating system..."
-sudo apt update && sudo apt upgrade -y
+info()  { echo -e "${GR}${1:-}${NC}"; }
+warn()  { echo -e "${YE}${1:-}${NC}"; }
+error() { echo -e "${RED}${1:-Unknown error}${NC}" 1>&2; exit 1; }
+
 
 if ! command -v docker &> /dev/null; then
     echo "Installing Docker..."
-    curl -sSL https://get.docker.com | sh || { echo "Docker installation failed"; exit 1; }
-    sudo usermod -aG docker $(whoami)
+    curl -sSL https://get.docker.com | sh || error "Docker installation failed."
+    if [ "$(id -u)" != "0" ]; then
+        sudo usermod -aG docker "$(whoami)" || error "Failed to add user to docker group."
+        echo "Added user to docker group. You may need to log out and log back in for changes to take effect."
+        echo "Alternatively, run the script as root."
+    fi
 fi
 
-sudo apt install curl jq -y
+if ! docker compose version &> /dev/null; then
+    error "Docker Compose is required. Please ensure it's installed or use Docker's compose plugin."
+fi
 
-getConfiguration=$(curl -s --connect-timeout 10 'https://raw.githubusercontent.com/odbxtest/VAL2/main/conc_info.json') || error "Failed to fetch configuration"
-awg_port=$(echo "$getConfiguration" | jq -r '.awg_port')
-wg_port=$(echo "$getConfiguration" | jq -r '.wg_port')
-
-echo "Configuring firewall..."
-sudo ufw allow 22
-sudo ufw allow $awg_port
-sudo ufw allow $wg_port
-sudo ufw --force enable
-sudo ufw --force reload
+echo "Fetching configuration..."
+getConfiguration=$(curl -s --connect-timeout 10 'https://raw.githubusercontent.com/odbxtest/DDV/main/info.json') || error "Failed to fetch configuration."
+ddv_url=$(echo "$getConfiguration" | jq -r '.url') || error "Failed to parse .url from configuration."
+awg_port=$(echo "$getConfiguration" | jq -r '.awg_port') || error "Failed to parse .awg_port from configuration."
+wg_port=$(echo "$getConfiguration" | jq -r '.wg_port') || error "Failed to parse .wg_port from configuration."
+ddv_path=$(echo "$getConfiguration" | jq -r '.path') || error "Failed to parse .path from configuration."
 
 echo "Detecting server IP..."
-serverIp=$(curl -s api.ipify.org || hostname -I | awk '{print $1}' || echo "YOUR_PUBLIC_IP_HERE")
+serverIp=$(curl -s https://api.ipify.org || curl -s https://ifconfig.me || hostname -I | awk '{print $1}') || error "Failed to detect server IP."
 if [ -z "$serverIp" ]; then
-  echo "Warning: Auto-detection failed. Edit script to set WG_HOST manually."
-  exit 1
+    error "Warning: Auto-detection failed. Edit script to set serverIp manually."
 fi
 echo "Server IP: $serverIp"
 
 echo "Generating bcrypt hash for password..."
 read -sp "Enter admin panel password: " panelPassword
 echo
-panelPasswordHash=$(python3 -c "import bcrypt; print(bcrypt.hashpw(b'$panelPassword', bcrypt.gensalt()).decode())")
+panelPasswordHash=$(python3 -c "import bcrypt; print(bcrypt.hashpw(b'$panelPassword'.encode(), bcrypt.gensalt()).decode())") || error "Failed to generate password hash."
 if [ -z "$panelPasswordHash" ]; then
-  echo "Error: Failed to generate password hash. Install bcrypt with 'pip3 install bcrypt'."
-  exit 1
+    error "Error: Failed to generate password hash."
 fi
 echo "Hash generated successfully (first 10 chars): ${panelPasswordHash:0:10}..."
 
 echo "Starting AmneziaWG-Easy container..."
 
-mkdir -p /root/AWG
+mkdir -p "$ddv_path"
 
-# Create the docker-compose.yml file in /root/AWG
-cat << 'EOF' > /root/AWG/docker-compose.yml
-version: '3.8'
-
+# Create the docker-compose.yml file in $ddv_path
+cat << 'EOF' > "$ddv_path/docker-compose.yml"
 services:
   amnezia-wg-easy:
     image: ghcr.io/w0rng/amnezia-wg-easy
     container_name: amnezia-wg-easy
     environment:
       - LANG=en
-      - WG_HOST=wg1.bdqp.ir
-      - PORT=1013
+      - WG_HOST=${serverIp}
+      - PORT=${awg_port}
       - PASSWORD_HASH=${panelPasswordHash}
       - WG_PERSISTENT_KEEPALIVE=21
       - WG_DEFAULT_DNS=1.1.1.1,8.8.8.8
@@ -65,7 +65,7 @@ services:
       - ENABLE_PROMETHEUS_METRICS=true
       - WG_PORT=${wg_port}
     volumes:
-      - /root/.amnezia-wg-easy:/etc/wireguard
+      - ${ddv_path}:/etc/wireguard
     ports:
       - "${wg_port}:${wg_port}/udp"
       - "${awg_port}:${awg_port}/tcp"
@@ -80,13 +80,14 @@ services:
     restart: unless-stopped
 EOF
 
-ls -la /root/AWG/
-#cat /root/AWG/docker-compose.yml
+cd "$ddv_path"
+docker compose up -d
+docker compose ps
 
-cd /root/AWG
-docker-compose up -d
-docker-compose ps
-
-echo "AmneziaWG-Easy installed successfully!"
-echo "Verify: docker ps | grep amnezia-wg-easy"
-echo "Access the web UI at http://$serverIp:$awg_port"
+if docker ps | grep -q amnezia-wg-easy; then
+    echo "AmneziaWG-Easy installed successfully!"
+    echo "Verify: docker ps | grep amnezia-wg-easy"
+    echo "Access the web UI at http://$serverIp:$awg_port"
+else
+    error "Failed to start AmneziaWG-Easy container."
+fi
