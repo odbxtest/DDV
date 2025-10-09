@@ -1,0 +1,39 @@
+{
+  "url": "http://ddv.valdomusic.com",
+  "awg_port": "10098",
+  "wg_port": "15000",
+  "ssh_ports": [
+    "22",
+    "6985",
+    "771"
+  ],
+  "path": "/root/ddvAWG",
+  "apt": [
+    "sudo",
+    "jq",
+    "lsof",
+    "curl",
+    "openssl",
+    "screen",
+    "iptables",
+    "cron",
+    "wget",
+    "nano",
+    "zip",
+    "unzip",
+    "make",
+    "python3-pip",
+    "openresolv",
+    "wireguard",
+    "wireguard-tools",
+    "iptables-persistent",
+    "build-essential"
+  ],
+  "pip": [
+    "requests",
+    "cryptography",
+    "fastapi",
+    "uvicorn",
+    "bcrypt"
+  ]
+}
