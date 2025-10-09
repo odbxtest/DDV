@@ -2,6 +2,10 @@
 
 set -euo pipefail
 
+RED='\033[0;31m'
+GR='\033[0;32m'
+YE='\033[0;33m'
+NC='\033[0m'
 info()  { echo -e "${GR}${1:-}${NC}"; }
 warn()  { echo -e "${YE}${1:-}${NC}"; }
 error() { echo -e "${RED}${1:-Unknown error}${NC}" 1>&2; exit 1; }
