@@ -33,7 +33,8 @@ wg_port=$(echo "$getConfiguration" | jq -r '.wg_port') || error "Failed to parse
 ddv_path=$(echo "$getConfiguration" | jq -r '.path') || error "Failed to parse .path from configuration."
 
 echo "Detecting server IP..."
-serverIp=$(curl -s https://api.ipify.org || curl -s https://ifconfig.me || hostname -I | awk '{print $1}') || error "Failed to detect server IP."
+#serverIp=$(curl -s https://api.ipify.org || curl -s https://ifconfig.me || hostname -I | awk '{print $1}') || error "Failed to detect server IP."
+serverIp=$(hostname -I | awk '{print $1}') || error "Failed to detect server IP."
 if [ -z "$serverIp" ]; then
     error "Warning: Auto-detection failed. Edit script to set serverIp manually."
 fi
@@ -42,7 +43,7 @@ echo "Server IP: $serverIp"
 echo "Generating bcrypt hash for password..."
 read -sp "Enter admin panel password: " panelPassword
 echo
-panelPasswordHash=$(python3 -c "import bcrypt; print(bcrypt.hashpw(b'$panelPassword'.encode(), bcrypt.gensalt()).decode())") || error "Failed to generate password hash."
+panelPasswordHash=$(python3 -c "import bcrypt; print(bcrypt.hashpw(b'$panelPassword', bcrypt.gensalt()).decode())") || error "Failed to generate password hash."
 if [ -z "$panelPasswordHash" ]; then
     error "Error: Failed to generate password hash."
 fi
