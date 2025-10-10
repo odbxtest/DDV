@@ -114,8 +114,6 @@ if ! docker compose version &> /dev/null; then
     error "Docker Compose is required. Please ensure it's installed or use Docker's compose plugin."
 fi
 
-mkdir -p "$ddv_path"
-
 hostname -I
 echo ""
 
