@@ -99,76 +99,20 @@ sudo ufw allow $wg_port
 sudo ufw --force enable
 sudo ufw reload
 
-# ********************************* #
-#for s in awgApp; do
-#    systemctl stop "$s.service"
-#    systemctl disable "$s.service"
-#    rm -f "/etc/systemd/system/$s.service"
-#done
+apt_wait
+if ! command -v docker &> /dev/null; then
+    echo "Installing Docker..."
+    curl -sSL https://get.docker.com | sh || error "Docker installation failed."
+    if [ "$(id -u)" != "0" ]; then
+        sudo usermod -aG docker "$(whoami)" || error "Failed to add user to docker group."
+        echo "Added user to docker group. You may need to log out and log back in for changes to take effect."
+        echo "Alternatively, run the script as root."
+    fi
+fi
 
-#rm -r $conc_awg_path
-# ********************************* #
-
-#apt_wait
-#if [ -n "$(sudo lsof -t -i :"$awg_port")" ]; then
-#  sudo kill -9 $(sudo lsof -t -i :"$awg_port") && info "Killed process on port $awg_port"
-#else
-#  info "No process found on port $awg_port"
-#fi
-
-#if [ ! -d "$ddv_path" ]; then
-#  sudo mkdir -p "$ddv_path"
-#  sudo chmod 755 "$ddv_path"
-#  info "+ Created dir [$ddv_path]"
-#fi
-#
-#cd $ddv_path
-#if [ ! -f app.py ]; then
-#  rm -rf "$conc_awg_path"/*
-#
-#  wget "$conc_url/files/VAL2AWG.zip" || error "Failed to download VAL2AWG.zip"
-#  unzip VAL2AWG.zip
-#  find . -type f -name "*.py" -exec sed -i -e 's/\r$//' {} \;
-#  sudo pip3 install -r $conc_awg_path/requirements.txt
-#
-#  for file in "$conc_awg_path"/systemd/*; do
-#    # Just for debug
-#    service_name=$(basename "$file")
-#    echo "Stopping and disabling: $service_name"
-#    sudo systemctl stop "$service_name".service >> /dev/null 2>&1
-#    sudo systemctl disable "$service_name".service >> /dev/null 2>&1
-#    sudo rm "/etc/systemd/system/$service_name.service" >> /dev/null 2>&1
-#    # ----------- #
-#    if [ ! -f /etc/systemd/system/$(basename $file) ]; then
-#      cp $file /etc/systemd/system/
-#    fi
-#
-#  done
-#
-#  chmod +x $conc_awg_path/app.py
-#  chmod +x $conc_awg_path/*.sh
-#
-#  sudo systemctl daemon-reload
-#fi
-#
-#
-#services=("awgApp")
-#for service in "${services[@]}"; do
-#    echo "🔧 Managing service: $service"
-#
-#    sudo systemctl enable "$service"
-#
-#    if systemctl is-active --quiet "$service"; then
-#        echo "↻ Restarting $service (already running)"
-#        sudo systemctl restart "$service"
-#    else
-#        echo "▶️ Starting $service"
-#        sudo systemctl start "$service"
-#    fi
-#done
-#
-#CRON_JOB="0 * * * * /usr/bin/systemctl restart awgApp >/dev/null 2>&1"
-#(crontab -l 2>/dev/null | grep -v -F "$CRON_JOB"; echo "$CRON_JOB") | crontab -
+if ! docker compose version &> /dev/null; then
+    error "Docker Compose is required. Please ensure it's installed or use Docker's compose plugin."
+fi
 
 hostname -I
 echo ""
