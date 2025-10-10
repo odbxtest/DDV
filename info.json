@@ -1,6 +1,7 @@
 {
   "url": "http://ddv.valdomusic.com",
   "awg_port": "10098",
+  "wgdf_port": "13370",
   "wg_port": "15000",
   "ssh_ports": [
     "22",
