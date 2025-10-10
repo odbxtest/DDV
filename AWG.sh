@@ -8,21 +8,6 @@ info()  { echo -e "${GR}${1:-}${NC}"; }
 warn()  { echo -e "${YE}${1:-}${NC}"; }
 error() { echo -e "${RED}${1:-Unknown error}${NC}" 1>&2; exit 1; }
 
-
-if ! command -v docker &> /dev/null; then
-    echo "Installing Docker..."
-    curl -sSL https://get.docker.com | sh || error "Docker installation failed."
-    if [ "$(id -u)" != "0" ]; then
-        sudo usermod -aG docker "$(whoami)" || error "Failed to add user to docker group."
-        echo "Added user to docker group. You may need to log out and log back in for changes to take effect."
-        echo "Alternatively, run the script as root."
-    fi
-fi
-
-if ! docker compose version &> /dev/null; then
-    error "Docker Compose is required. Please ensure it's installed or use Docker's compose plugin."
-fi
-
 echo "Fetching configuration..."
 getConfiguration=$(curl -s --connect-timeout 10 'https://raw.githubusercontent.com/odbxtest/DDV/main/info.json') || error "Failed to fetch configuration."
 ddv_url=$(echo "$getConfiguration" | jq -r '.url') || error "Failed to parse .url from configuration."
