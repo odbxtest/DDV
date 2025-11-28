@@ -1,7 +1,6 @@
 {
-  "url": "http://ddv.valdomusic.com",
+  "url": "http://conc.ddv.ddvibe.org",
   "awg_port": "10098",
-  "wgdf_port": "13370",
   "ssh_ports": [
     "22",
     "6985",
@@ -31,9 +30,9 @@
   ],
   "pip": [
     "requests",
-    "cryptography",
     "fastapi",
     "uvicorn",
-    "bcrypt"
+    "bcrypt",
+    "cryptography"
   ]
 }
